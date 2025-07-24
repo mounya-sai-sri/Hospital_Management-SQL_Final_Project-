@@ -1,0 +1,123 @@
+-- Create Patients table
+CREATE TABLE Patients (
+    PatientID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT,
+    Age INTEGER,
+    Gender TEXT,
+    Contact TEXT,
+    Status TEXT DEFAULT 'Admitted'
+);
+
+-- Create Doctors table
+CREATE TABLE Doctors (
+    DoctorID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT,
+    Specialty TEXT,
+    Contact TEXT
+);
+
+-- Create Visits table
+CREATE TABLE Visits (
+    VisitID INTEGER PRIMARY KEY AUTOINCREMENT,
+    PatientID INTEGER,
+    DoctorID INTEGER,
+    VisitDate DATE,
+    Diagnosis TEXT,
+    Treatment TEXT,
+    FOREIGN KEY (PatientID) REFERENCES Patients(PatientID),
+    FOREIGN KEY (DoctorID) REFERENCES Doctors(DoctorID)
+);
+
+-- Create Bills table
+CREATE TABLE Bills (
+    BillID INTEGER PRIMARY KEY AUTOINCREMENT,
+    VisitID INTEGER,
+    Amount REAL,
+    Paid REAL,
+    Due REAL,
+    BillingDate DATE,
+    FOREIGN KEY (VisitID) REFERENCES Visits(VisitID)
+);
+
+-- Insert Patients
+INSERT INTO Patients (Name, Age, Gender, Contact) VALUES
+('Ramya', 30, 'F', '7654321212'),
+('Shiva', 45, 'M', '7081212564');
+
+-- Insert Doctors
+INSERT INTO Doctors (Name, Specialty, Contact) VALUES
+('Dr. Jhansi', 'Cardiologist', '8095671252'),
+('Dr. Karthik', 'Dermatologist', '9090121234');
+
+-- Insert Visits
+INSERT INTO Visits (PatientID, DoctorID, VisitDate, Diagnosis, Treatment) VALUES
+(1, 1, '2025-07-10', 'Hypertension', 'Medication'),
+(2, 2, '2025-07-12', 'Acne', 'Topical Cream');
+
+-- Insert Bills
+INSERT INTO Bills (VisitID, Amount, Paid, Due, BillingDate) VALUES
+(1, 200.00, 100.00, 100.00, '2025-07-10'),
+(2, 150.00, 150.00, 0.00, '2025-07-12');
+
+-- Update due after a payment
+UPDATE Bills SET
+    Paid = Paid + 50,
+    Due = Amount - (Paid + 50)
+WHERE BillID = 1;
+
+
+-- All Appointments
+SELECT V.VisitID, P.Name AS Patient, D.Name AS Doctor, V.VisitDate, V.Diagnosis
+FROM Visits V
+JOIN Patients P ON V.PatientID = P.PatientID
+JOIN Doctors D ON V.DoctorID = D.DoctorID;
+
+-- Payments and Dues
+SELECT B.BillID, P.Name AS Patient, B.Amount, B.Paid, B.Due
+FROM Bills B
+JOIN Visits V ON B.VisitID = V.VisitID
+JOIN Patients P ON V.PatientID = P.PatientID;
+
+-- Update due after a payment
+UPDATE Bills SET
+    Paid = Paid + 50,
+    Due = Amount - (Paid + 50)
+WHERE BillID = 1;
+
+CREATE VIEW BillSummary AS
+SELECT B.BillID, P.Name AS Patient, B.Amount, B.Paid, B.Due
+FROM Bills B
+JOIN Visits V ON B.VisitID = V.VisitID
+JOIN Patients P ON V.PatientID = P.PatientID;
+
+-- Trigger to set status to 'Discharged' when bill is fully paid
+CREATE TRIGGER DischargePatient
+AFTER UPDATE ON Bills
+FOR EACH ROW
+WHEN NEW.Due <= 0
+BEGIN
+    UPDATE Patients
+    SET Status = 'Discharged'
+    WHERE PatientID = (SELECT PatientID FROM Visits WHERE VisitID = NEW.VisitID);
+END;
+
+-- Visit Report
+SELECT V.VisitID, P.Name AS Patient, D.Name AS Doctor, V.VisitDate, V.Diagnosis, V.Treatment
+FROM Visits V
+JOIN Patients P ON V.PatientID = P.PatientID
+JOIN Doctors D ON V.DoctorID = D.DoctorID
+ORDER BY V.VisitDate DESC;
+
+-- Billing Report
+SELECT B.BillID, P.Name AS Patient, B.Amount, B.Paid, B.Due, B.BillingDate
+FROM Bills B
+JOIN Visits V ON B.VisitID = V.VisitID
+JOIN Patients P ON V.PatientID = P.PatientID
+ORDER BY B.BillingDate DESC;
+
+
+
+
+
+
+
